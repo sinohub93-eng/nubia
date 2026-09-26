@@ -1,0 +1,37 @@
+# Netlify build configuration for Nubia.
+# Environment variables (Site settings > Environment variables on Netlify, NOT in this file):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_FLW_PUBLIC_KEY, VITE_ALLOW_SAMPLE_FALLBACK
+# Only VITE_-prefixed, browser-safe values belong there. Supabase Edge Function secrets
+# (FLW_SECRET_KEY, RESELLERCLUB_API_KEY, etc.) are never set here — see .env.example.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# The app is a client-side single-page app that routes on the URL hash (#/websites, #/admin, ...),
+# so the browser never asks the server for those paths directly. This redirect exists for direct
+# navigation/refresh on any path Netlify doesn't have a static file for (e.g. a bookmarked deep link
+# without a hash, or a trailing slash) — every one of those should still serve index.html and let the
+# app's own router take over, instead of Netlify's default 404.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    # Vite fingerprints (hashes) everything under /assets, so a long cache is safe: a new
+    # deploy produces new filenames, it never reuses a stale cached one.
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
